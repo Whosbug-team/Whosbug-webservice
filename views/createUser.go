@@ -1,13 +1,13 @@
 package views
 
 import (
-	"fmt"
+	"net/http"
+	. "webService_Refactoring/modules"
+	"webService_Refactoring/utils"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
-	"net/http"
-	. "webService_Refactoring/modules"
 )
 
 // UserCreate 生成用户数据并存储到数据库中
@@ -17,29 +17,15 @@ func UserCreate(context *gin.Context) {
 		v.RegisterValidation("usernamerule", UsernameRule)
 	}
 	var registerForm RegisterForm
-	err := context.ShouldBind(&registerForm)
-	if err != nil {
+	if err := context.ShouldBind(&registerForm); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
 		})
 		return
 	}
-	var tokenKey string
-	tokenKey = registerForm.Username + "&" + registerForm.Password
+	tokenKey := registerForm.Username + "&" + registerForm.Password
 	token := MD5(tokenKey)
-
-	var userUUID uuid.UUID
-	userUUID = CreateUUID()
-
-	context.JSON(http.StatusOK, gin.H{
-		"id":         userUUID.String(),
-		"username":   registerForm.Username,
-		"password":   registerForm.Password,
-		"first_name": registerForm.Firstname,
-		"last_name":  registerForm.Lastname,
-		"email":      registerForm.Email,
-		"auth_token": token,
-	})
+	userUUID := CreateUUID()
 
 	DbCreateUser := UsersTable{
 		UserID:        userUUID,
@@ -50,5 +36,22 @@ func UserCreate(context *gin.Context) {
 		UserLastName:  registerForm.Lastname,
 		UserEmail:     registerForm.Email,
 	}
-	fmt.Println(Db.Table("users").Create(&DbCreateUser).RowsAffected)
+	if err := Db.Table("users").Create(&DbCreateUser).Error; err != nil {
+		context.JSON(utils.ErrorUserCreatedFail, gin.H{
+			"msg": utils.GetErrMsg(utils.ErrorUserCreatedFail),
+		})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{
+		"msg":        utils.GetErrMsg(http.StatusOK),
+		"id":         userUUID.String(),
+		"username":   registerForm.Username,
+		"password":   registerForm.Password,
+		"first_name": registerForm.Firstname,
+		"last_name":  registerForm.Lastname,
+		"email":      registerForm.Email,
+		"auth_token": token,
+	})
+
 }

@@ -5,12 +5,14 @@ const (
 
 	// SUCCESS 成功标识
 	SUCCESS = 0
+	// 请求成功
+	StatusOK = 200
 	// 请求已被实现
 	RequestCompleted = 201
-	// 错误的请求参数
-	ErrorRequestParameter = 400
-	// 找不到服务器对应的资源
-	ResourceNotFound = 404
+	// 请求参数有误
+	StatusBadRequest = 400
+	// 请求参数缺少有效的身份验证凭据
+	StatusUnauthorized = 401
 	// ErrorTokenWrong token错误
 	ErrorTokenWrong = 1001
 	// ErrorTokenFormatWrong token格式错误
@@ -45,9 +47,10 @@ var codeMap = map[int]string{
 	ErrorTokenWrong:          "Token 不正确",
 	ErrorTokenFormatWrong:    "Token格式错误",
 	ErrorUserNameFormatWrong: "用户名格式错误",
+	StatusOK:                 "请求成功",
 	RequestCompleted:         "请求已被实现",
-	ErrorRequestParameter:    "错误的请求参数",
-	ResourceNotFound:         "找不到服务器对应的资源",
+	StatusBadRequest:         "请求参数有误",
+	StatusUnauthorized:       "请求参数缺少有效的身份验证凭据",
 
 	ErrorUserCreatedFail:    "用户创建失败",
 	ErrorUserNotFound:       "找不到对应用户信息",
@@ -64,6 +67,7 @@ func GetErrMsg(code int) string {
 /* type Response struct {
 	code    int
 	message error
+	data    interface{}
 }
 
 var (
