@@ -1,10 +1,12 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
-	. "webService_Refactoring/middlewear"
+	_ "webService_Refactoring/middlewear"
 	. "webService_Refactoring/utils"
 	. "webService_Refactoring/views"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // InitRouter 初始化
@@ -15,8 +17,8 @@ func InitRouter() {
 
 	api := r.Group("/v1/users")
 	{
+		//r.Use(CheckToken())
 		api.POST("/", UserCreate)
-		r.Use(CheckToken())
 		api.GET("/:id", UserRead)
 		api.PUT("/:id", UpdateUser)
 		api.PATCH("/:id", UpdateUserPartial)
@@ -39,5 +41,8 @@ func InitRouter() {
 	r.GET("/v1/liveness", LivenessList)         //1
 	r.POST("/v1/owner", OwnerCreate)            //1
 	r.POST("/v1/releases/last", GetLastRelease) //1
+
+	//prometheus
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.Run(HTTPPort)
 }
