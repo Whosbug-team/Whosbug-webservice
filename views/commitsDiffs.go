@@ -3,42 +3,42 @@ package views
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	. "webService_Refactoring/modules"
+	"webService_Refactoring/utils"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CommitsDiffsCreate 在数据库中创建commitdiff
 func CommitsDiffsCreate(context *gin.Context) {
-
 	var t T4
-
-	err := context.ShouldBind(&t)
-
-	if err != nil {
+	if err := context.ShouldBind(&t); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
 		})
 		return
 	}
 	pid := t.Project.Pid
 	version := t.Release.Version
-	temp := ProjectsTable{}
-	res := Db.Table("projects").First(&temp, "project_id = ? ", pid)
-	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-		context.Status(400)
+	project := ProjectsTable{}
+	if err := Db.Table("projects").First(&project, "project_id = ? ", pid).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"msg": utils.GetErrMsg(utils.ErrorProjectNotFound),
+		})
 		return
 	}
-	temp1 := ReleasesTable{}
-	res1 := Db.Table("releases").First(&temp1, "release_version = ?", version)
-	if errors.Is(res1.Error, gorm.ErrRecordNotFound) {
-		context.Status(400)
+	release := ReleasesTable{}
+	if err := Db.Table("releases").First(&release, "release_version = ?", version).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"msg": utils.GetErrMsg(utils.ErrorReleaseNotFound),
+		})
 		return
 	}
 	commit := CommitsTable{}
-	Db.Table("commits").First(&commit, "release_table_id = ?", temp1.TableID)
-	n, releaseID, commitID := len(t.UncountedObject), temp1.TableID, commit.TableID
+	Db.Table("commits").First(&commit, "release_table_id = ?", release.TableID)
+	n, releaseID, commitID := len(t.UncountedObject), release.TableID, commit.TableID
 	for i := 0; i < n; i++ {
 		temp2 := ObjectsTable{0, t.UncountedObject[i].Parameters, t.UncountedObject[i].Hash,
 			t.UncountedObject[i].StartLine, t.UncountedObject[i].EndLine, t.UncountedObject[i].Path,
@@ -47,7 +47,8 @@ func CommitsDiffsCreate(context *gin.Context) {
 			int(releaseID), int(commitID)}
 		fmt.Println(Db.Table("objects").Create(&temp2).RowsAffected)
 	}
-
-	context.Status(200)
-
+	context.JSON(http.StatusOK, gin.H{
+		"msg": utils.GetErrMsg(http.StatusOK),
+	})
+	return
 }
