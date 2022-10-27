@@ -2,42 +2,41 @@ package views
 
 import (
 	"errors"
+	"net/http"
+	. "webService_Refactoring/modules"
+	"webService_Refactoring/utils"
+
 	"github.com/cheggaaa/pb"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
-	. "webService_Refactoring/modules"
 )
 
 // CommitsTrainMethodCreate 训练参数数据集
 func CommitsTrainMethodCreate(context *gin.Context) {
-
 	var t T
-
-	err := context.ShouldBind(&t)
-
-	if err != nil {
+	if err := context.ShouldBind(&t); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
 		})
 		return
 	}
 	pid, version, temp := t.Project.Pid, t.Release.Version, ProjectsTable{}
-	res := Db.Table("projects").First(&temp, "project_id = ? ", pid)
-	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-		context.Status(400)
+	if err := Db.Table("projects").First(&temp, "project_id = ? ", pid).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
+		})
 		return
 	}
-	temp1 := ReleasesTable{}
-	res1 := Db.Table("releases").First(&temp1, "release_version = ?", version)
-	if errors.Is(res1.Error, gorm.ErrRecordNotFound) {
-		context.Status(400)
+	release := ReleasesTable{}
+	if err := Db.Table("releases").First(&release, "release_version = ?", version).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
+		})
 		return
 	}
-	temp3 := ObjectsTable{}
+	object := ObjectsTable{}
 	lastCommitHash := t.Release.CommitHash
-	errs := Db.Table("objects").First(&temp3, "release_version = ? and hash = ?", version, lastCommitHash)
-	if errs != nil {
+	if err := Db.Table("objects").First(&object, "release_version = ? and hash = ?", version, lastCommitHash); err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Delete error",
 		})
