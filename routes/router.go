@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"webService_Refactoring/middlewear"
 	_ "webService_Refactoring/middlewear"
 	. "webService_Refactoring/utils"
 	. "webService_Refactoring/views"
@@ -13,6 +14,7 @@ import (
 func InitRouter() {
 	gin.SetMode(AppMode)
 	r := gin.Default()
+	r.Use(middlewear.PrometheusMonitor())
 	r.POST("/v1/api-token-auth", CreateToken)
 
 	api := r.Group("/v1/users")
