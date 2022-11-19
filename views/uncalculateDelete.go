@@ -2,20 +2,21 @@ package views
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	. "webService_Refactoring/modules"
+	"webService_Refactoring/utils"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // UnCalculateDelete 接收完数据之后删除为计算的object信息
 func UnCalculateDelete(context *gin.Context) {
 	//接收数据
 	var t T
-	err := context.ShouldBind(&t)
-	if err != nil {
+	if err := context.ShouldBind(&t); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"msg": utils.GetErrMsg(http.StatusBadRequest),
 		})
 		return
 	}
@@ -24,22 +25,19 @@ func UnCalculateDelete(context *gin.Context) {
 	version := t.Release.Version
 	//以pid去找
 	project := ProjectsTable{}
-	res := Db.Table("projects").Where("project_id = ?", pid).First(&project)
-	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+	if err := Db.Table("projects").Where("project_id = ?", pid).First(&project).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Project get fails",
-			"detail": "no such project:" + pid,
+			"msg": utils.GetErrMsg(utils.ErrorProjectNotFound),
 		})
 		return
 	}
 	//以version去找
 	release := ReleasesTable{}
-	res2 := Db.Table("releases").Where("release_version = ? and project_table_id = ?",
-		version, project.TableID).First(&release)
-	if errors.Is(res2.Error, gorm.ErrRecordNotFound) {
+	err := Db.Table("releases").Where("release_version = ? and project_table_id = ?",
+		version, project.TableID).First(&release).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Release get fails",
-			"detail": "no such release:" + version,
+			"msg": utils.GetErrMsg(utils.ErrorReleaseNotFound),
 		})
 		return
 	}
@@ -56,6 +54,6 @@ func UnCalculateDelete(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{
-		"Success": "Success",
+		"msg": utils.GetErrMsg(http.StatusOK),
 	})
 }
